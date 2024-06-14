@@ -1,0 +1,13 @@
+idependencies:
+  - OpenZeppelin/openzeppelin-contracts@4.3.2
+compiler:
+  solc:
+    remappings:
+      - '@openzeppelin=OpenZeppelin/openzeppelin-contracts@4.3.2'
+networks:
+  default: development
+  development:
+    host: http://127.0.0.1:7545
+    gas_limit: 12000000
+    gas_price: 50 gwei
+    chainid: 1337
