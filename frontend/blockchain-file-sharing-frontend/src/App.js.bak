@@ -1,0 +1,16 @@
+import React from 'react';
+import './App.css';
+import UserRegistration from './UserRegistration';
+
+function App() {
+  return (
+    <div className="App">
+      <header className="App-header">
+        <h1>Blockchain File Sharing</h1>
+        <UserRegistration />
+      </header>
+    </div>
+  );
+}
+
+export default App;

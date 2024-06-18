@@ -1,0 +1,109 @@
+// 0x0B3A88D1294DBe1AfCCDb9593Dc1235130CCE80e
+import { BrowserProvider, Contract, Wallet } from 'ethers';
+import FileSharing from './contracts/FileSharing.json';
+
+const contractAddress = '0x0B3A88D1294DBe1AfCCDb9593Dc1235130CCE80e'; // Use the latest deployed contract address
+
+// Create a BrowserProvider instance
+const provider = new BrowserProvider(window.ethereum);
+
+async function getSigner() {
+  await window.ethereum.request({ method: 'eth_requestAccounts' });
+  return provider.getSigner();
+}
+
+// Store private keys for demonstration purposes (not secure)
+const privateKeyStorage = {};
+
+export const registerUser = async (username, email, role) => {
+  try {
+    // Generate a new wallet for the user
+    const newWallet = Wallet.createRandom();
+    const userAddress = newWallet.address;  // This is the new public key
+    const privateKey = newWallet.privateKey; // This is the private key
+
+    console.log(`Registering user with username: ${username}, email: ${email}, role: ${role}, publicKey: ${userAddress}, privateKey: ${privateKey}`);
+    
+    // Get the current signer
+    const signer = await getSigner();
+    
+    // Create contract instance with signer
+    const contractWithSigner = new Contract(contractAddress, FileSharing.abi, signer);
+    
+    // Check if the user is already registered to avoid overwriting
+    const isRegistered = await contractWithSigner.isUserRegistered(userAddress);
+    if (isRegistered) {
+      throw new Error('User with this public key is already registered');
+    }
+
+    // Call registerUser function from the contract
+    const transaction = await contractWithSigner.registerUser(username, email, role, userAddress);
+    await transaction.wait();
+    console.log(`Transaction successful with hash: ${transaction.hash}`);
+
+    // Store the private key for demonstration purposes
+    privateKeyStorage[userAddress] = privateKey;
+
+    return { username, email, role, publicKey: userAddress, privateKey };
+  } catch (error) {
+    console.error("Error registering user:", error);
+    throw error;
+  }
+};
+
+export const getAllUsers = async () => {
+  try {
+    // Use the provider to call the contract method
+    const contractWithProvider = new Contract(contractAddress, FileSharing.abi, provider);
+    const users = await contractWithProvider.getAllUsers();
+    console.log(`Fetched users: ${JSON.stringify(users, (key, value) =>
+      typeof value === 'bigint' ? value.toString() : value
+    )}`);
+    return users.map(user => ({
+      username: user.username,
+      email: user.email,
+      role: user.role.toString(), // Ensure role is a string
+      publicKey: user.publicKey,
+      privateKey: privateKeyStorage[user.publicKey] || 'N/A' // Retrieve private key from storage
+    }));
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    throw error;
+  }
+};
+// Other functions...
+
+
+
+export const uploadFile = async (fileName, fileData) => {
+  try {
+    const transaction = await Contract.uploadFile(fileName, fileData);
+    await transaction.wait();
+    console.log("File uploaded:", transaction);
+  } catch (error) {
+    console.error("Error uploading file:", error);
+    throw error;
+  }
+};
+
+export const getFile = async (fileId) => {
+  try {
+    const file = await Contract.getFile(fileId);
+    console.log("File details:", file);
+    return file;
+  } catch (error) {
+    console.error("Error getting file:", error);
+    throw error;
+  }
+};
+
+export const getUserDetails = async (userAddress) => {
+  try {
+    const userDetails = await Contract.users(userAddress);
+    console.log("User details:", userDetails);
+    return userDetails;
+  } catch (error) {
+    console.error("Error getting user details:", error);
+    throw error;
+  }
+};
